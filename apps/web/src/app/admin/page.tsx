@@ -47,16 +47,16 @@ const fallbackTickets: RepairTicketDto[] = [
 
 export default function AdminPage() {
   const { dictionary, locale } = useLanguage();
-  const { role } = useRole();
+  const { role, isAuthenticated } = useRole();
   const queryClient = useQueryClient();
   const [assigningId, setAssigningId] = useState("");
   const [feeInputs, setFeeInputs] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<TicketStatus | "ALL">("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const { data } = useQuery({
-    queryKey: ["repair-tickets", role],
-    queryFn: () => fetchRepairTickets(role),
-    enabled: role === "ADMIN"
+    queryKey: ["repair-tickets"],
+    queryFn: () => fetchRepairTickets(),
+    enabled: isAuthenticated
   });
   const tickets = data?.length ? data : fallbackTickets;
 
@@ -80,10 +80,10 @@ export default function AdminPage() {
     const socket = io(WS_URL, { transports: ["websocket"] });
     socket.emit("join-admin-room");
     socket.on("ticket-created", (ticket: RepairTicketDto) => {
-      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets", role], (current = []) => [ticket, ...current]);
+      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets"], (current = []) => [ticket, ...current]);
     });
     socket.on("ticket-updated", (ticket: RepairTicketDto) => {
-      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets", role], (current = []) => current.map((item) => (item.id === ticket.id ? ticket : item)));
+      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets"], (current = []) => current.map((item) => (item.id === ticket.id ? ticket : item)));
     });
     return () => {
       socket.disconnect();
@@ -108,8 +108,8 @@ export default function AdminPage() {
       const rawFee = feeInputValue(ticket);
       const transportFee =
         ticket.serviceType === "AT_HOME" && rawFee !== "" && Number.isFinite(Number(rawFee)) ? Number(rawFee) : undefined;
-      const updated = await assignRepairTicket(ticket.id, technicianId, role, transportFee);
-      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets", role], (current = []) => current.map((item) => (item.id === updated.id ? updated : item)));
+      const updated = await assignRepairTicket(ticket.id, technicianId, transportFee);
+      queryClient.setQueryData<RepairTicketDto[]>(["repair-tickets"], (current = []) => current.map((item) => (item.id === updated.id ? updated : item)));
     } finally {
       setAssigningId("");
     }

@@ -57,6 +57,37 @@ model RepairTicket {
   updatedAt     DateTime     @updatedAt
 }
 
+model Order {
+  id                    String      @id @default(cuid())
+  orderNumber           String      @unique @default(cuid())
+  customerName          String
+  customerPhone         String
+  customerEmail         String?
+  deliveryAddress       String
+  deliveryMethod        String
+  deliveryFee           Float       @default(0)
+  total                 Float
+  paymentMethod         String
+  paymentReceiverPhone  String
+  status                OrderStatus @default(PENDING_PAYMENT)
+  stripePaymentIntentId String?
+  stripeClientSecret    String?
+  providerReference     String?
+  paymentUrl            String?
+  items                 OrderItem[]
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
+  productId String
+  quantity  Int
+  price     Float
+}
+
 model ServiceRequest {
   id            String   @id @default(cuid())
   serviceType   String
@@ -89,5 +120,12 @@ enum TicketStatus {
   ASSIGNED
   IN_PROGRESS
   COMPLETED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  FAILED
   CANCELLED
 }

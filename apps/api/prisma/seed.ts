@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import * as bcrypt from "bcrypt";
 import { Category, PrismaClient, Role } from "@prisma/client";
 
 function loadLocalEnv() {
@@ -25,12 +26,16 @@ loadLocalEnv();
 const prisma = new PrismaClient();
 
 async function main() {
+  const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD ?? "ChangeMe123!", 10);
+  const techPassword = await bcrypt.hash(process.env.TECH_PASSWORD ?? "ChangeMe123!", 10);
+
   await prisma.user.upsert({
     where: { email: "admin@bcstore.cm" },
-    update: {},
+    update: { password: adminPassword },
     create: {
       id: "admin-001",
       email: "admin@bcstore.cm",
+      password: adminPassword,
       name: "BC Admin",
       phone: "+237650000000",
       role: Role.ADMIN
@@ -39,10 +44,11 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "tech-a@bcstore.cm" },
-    update: {},
+    update: { password: techPassword },
     create: {
       id: "tech-001",
       email: "tech-a@bcstore.cm",
+      password: techPassword,
       name: "Technicien A",
       phone: "+237650000001",
       role: Role.TECHNICIAN
@@ -51,10 +57,11 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "tech-b@bcstore.cm" },
-    update: {},
+    update: { password: techPassword },
     create: {
       id: "tech-002",
       email: "tech-b@bcstore.cm",
+      password: techPassword,
       name: "Technicien B",
       phone: "+237650000002",
       role: Role.TECHNICIAN

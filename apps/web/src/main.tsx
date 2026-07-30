@@ -7,6 +7,7 @@ import { QueryProvider } from "@/components/query-provider";
 import { RoleProvider, useRole } from "@/components/role-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import AdminPage from "@/app/admin/page";
+import AdminLoginPage from "@/app/admin/login";
 import OtherPage from "@/app/autre/page";
 import BoutiquePage from "@/app/boutique/page";
 import ProductDetailPage from "@/app/boutique/[slug]/page";
@@ -19,7 +20,7 @@ import "@/app/globals.css";
 
 function AdminRoute() {
   const { isAdmin } = useRole();
-  return isAdmin ? <AdminPage /> : <Navigate to="/" replace />;
+  return isAdmin ? <AdminPage /> : <AdminLoginPage />;
 }
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

@@ -5,11 +5,19 @@ import type { FormEvent } from "react";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { GeofenceCheck } from "@/components/geofence-check";
 import { NeonButton } from "@/components/neon-button";
+import { PaymentPanel } from "@/components/payment-panel";
 import { SiteHeader } from "@/components/site-header";
 import { useLanguage } from "@/components/language-provider";
 import { PAYMENT_RECEIVER_PHONE, checkout } from "@/lib/api";
 import { formatXaf } from "@/lib/utils";
 import { useCartStore } from "@/store/cart-store";
+
+interface PendingPayment {
+  orderNumber: string;
+  paymentMethod: "CARD" | "MOBILE_MONEY" | "ORANGE_MONEY";
+  stripeClientSecret?: string;
+  paymentUrl?: string;
+}
 
 export default function CheckoutPage() {
   const { dictionary, locale } = useLanguage();
@@ -20,6 +28,7 @@ export default function CheckoutPage() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [toast, setToast] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
   const itemsTotal = items.reduce((sum, item) => sum + item.price, 0);
   const appliedDeliveryFee = deliveryMethod === "DELIVERY" ? deliveryFee : 0;
   const total = itemsTotal + appliedDeliveryFee;
@@ -27,26 +36,41 @@ export default function CheckoutPage() {
   async function confirmOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const paymentMethod = method === "card" ? "CARD" : method === "orange" ? "ORANGE_MONEY" : "MOBILE_MONEY";
 
     setSubmitting(true);
     try {
-      await checkout({
+      const result = await checkout({
         customerName: String(form.get("customerName") ?? ""),
         customerPhone: String(form.get("customerPhone") ?? ""),
         deliveryAddress: deliveryMethod === "DELIVERY" ? String(form.get("deliveryAddress") ?? "") : "BC Store",
         deliveryMethod,
         deliveryFee: appliedDeliveryFee,
-        paymentMethod: method === "card" ? "CARD" : method === "orange" ? "ORANGE_MONEY" : "MOBILE_MONEY",
+        paymentMethod,
         paymentReceiverPhone: PAYMENT_RECEIVER_PHONE,
         items: items.map((item) => ({ productId: item.id, quantity: 1, price: item.price }))
       });
-      setToast(dictionary.checkout.success.replace("{phone}", PAYMENT_RECEIVER_PHONE));
-      clear();
+      setPendingPayment({
+        orderNumber: result.orderNumber,
+        paymentMethod,
+        stripeClientSecret: result.stripeClientSecret,
+        paymentUrl: result.paymentUrl
+      });
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Request failed");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handlePaymentSettled(status: "PAID" | "FAILED") {
+    if (status === "PAID") {
+      setToast(dictionary.checkout.success.replace("{phone}", PAYMENT_RECEIVER_PHONE));
+      clear();
+    } else {
+      setToast("Le paiement a échoué. Veuillez réessayer.");
+    }
+    setPendingPayment(null);
   }
 
   return (
@@ -61,6 +85,21 @@ export default function CheckoutPage() {
           ]}
         />
         <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+        {pendingPayment ? (
+          <div className="glass-card grid gap-6 rounded-[2rem] p-6">
+            <div>
+              <p className="text-sm font-black uppercase tracking-normal text-buyCyan">{pendingPayment.orderNumber}</p>
+              <h1 className="mt-2 text-3xl font-black text-textMain">{dictionary.checkout.payment}</h1>
+            </div>
+            <PaymentPanel
+              orderNumber={pendingPayment.orderNumber}
+              paymentMethod={pendingPayment.paymentMethod}
+              stripeClientSecret={pendingPayment.stripeClientSecret}
+              paymentUrl={pendingPayment.paymentUrl}
+              onSettled={handlePaymentSettled}
+            />
+          </div>
+        ) : (
         <form className="glass-card grid gap-8 rounded-[2rem] p-6" onSubmit={confirmOrder}>
           <div>
             <p className="text-sm font-black uppercase tracking-normal text-buyCyan">{dictionary.checkout.confirmation}</p>
@@ -137,6 +176,7 @@ export default function CheckoutPage() {
 
           <NeonButton type="submit" intent="buy" disabled={!items.length || submitting} className="w-full disabled:cursor-not-allowed disabled:opacity-50">{dictionary.checkout.confirm}</NeonButton>
         </form>
+        )}
 
         <aside className="glass-card sticky top-24 h-max rounded-[2rem] p-6">
           <h2 className="text-2xl font-black text-textMain">{dictionary.checkout.summary}</h2>

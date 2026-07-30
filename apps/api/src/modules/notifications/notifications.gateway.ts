@@ -35,4 +35,8 @@ export class NotificationsGateway implements OnGatewayConnection {
   emitNewHomeVisit(ticket: unknown) {
     this.server?.to("admin-room").emit("new-home-visit", ticket);
   }
+
+  emitOrderUpdated(order: unknown) {
+    this.server?.to("admin-room").emit("order-updated", order);
+  }
 }

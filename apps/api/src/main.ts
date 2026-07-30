@@ -4,7 +4,7 @@ import { AppModule } from "./app.module";
 import { ApiExceptionFilter } from "./common/filters/api-exception.filter";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   app.setGlobalPrefix("api");
   app.enableCors({
     origin: process.env.WEB_ORIGIN ?? "http://localhost:3000",

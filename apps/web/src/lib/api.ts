@@ -1,5 +1,6 @@
-import type { ProductCategory, RepairTicketDto, UserRole } from "@bc-store/shared-types";
+import type { ProductCategory, RepairTicketDto } from "@bc-store/shared-types";
 import type { ProductViewModel } from "@/lib/products";
+import { getToken } from "@/lib/auth";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
 const USE_API_PRODUCTS = import.meta.env.VITE_USE_API_PRODUCTS === "true";
@@ -63,16 +64,21 @@ interface CheckoutResult {
   status: string;
   total: number;
   paymentReceiverPhone: string;
+  stripeClientSecret?: string;
+  paymentUrl?: string;
+  momoReferenceId?: string;
 }
 
 const REQUEST_TIMEOUT_MS = 8000;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getToken();
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers
     }
   });
@@ -130,16 +136,13 @@ export function createRepairTicket(payload: CreateRepairTicketPayload) {
   });
 }
 
-export function fetchRepairTickets(role: UserRole) {
-  return request<RepairTicketDto[]>("/repair/tickets", {
-    headers: { "x-user-role": role }
-  });
+export function fetchRepairTickets() {
+  return request<RepairTicketDto[]>("/repair/tickets");
 }
 
-export function assignRepairTicket(id: string, technicianId: string, role: UserRole, transportFee?: number) {
+export function assignRepairTicket(id: string, technicianId: string, transportFee?: number) {
   return request<RepairTicketDto>(`/repair/tickets/${id}/assign`, {
     method: "PATCH",
-    headers: { "x-user-role": role },
     body: JSON.stringify({ technicianId, ...(transportFee !== undefined ? { transportFee } : {}) })
   });
 }
@@ -151,7 +154,7 @@ export function createServiceRequest(payload: CreateServiceRequestPayload) {
   });
 }
 
-export function checkout(payload: CheckoutPayload) {
+export function checkout(payload: CheckoutPayload): Promise<CheckoutResult> {
   if (import.meta.env.DEV && !USE_API_CHECKOUT) {
     return Promise.resolve({
       orderNumber: `LOCAL-${Date.now()}`,
@@ -165,4 +168,8 @@ export function checkout(payload: CheckoutPayload) {
     method: "POST",
     body: JSON.stringify(payload)
   });
+}
+
+export function fetchOrderStatus(orderNumber: string) {
+  return request<{ orderNumber: string; status: string }>(`/payments/order/${orderNumber}`);
 }
