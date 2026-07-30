@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String                 @id @default(cuid())
+  email       String                 @unique
+  password    String?
+  role        Role                   @default(CUSTOMER)
+  name        String
+  phone       String?
+  technicians RepairTicket[]
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  category    Category
+  price       Float
+  stock       Int
+  images      String[]
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model RepairTicket {
+  id            String       @id @default(cuid())
+  ticketNumber  String       @unique @default(cuid())
+  deviceType    String
+  brand         String
+  model         String
+  faultDesc     String       @db.Text
+  serviceType   String
+  storeAddress  String?
+  homeAddress   String?
+  visitDate     DateTime?
+  transportZone         String?
+  estimatedTransportFee Float?
+  transportFee          Float?
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  status        TicketStatus @default(PENDING)
+  assignedTo    String?
+  assignedUser  User?        @relation(fields: [assignedTo], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model ServiceRequest {
+  id            String   @id @default(cuid())
+  serviceType   String
+  description   String   @db.Text
+  customerName  String
+  customerPhone String
+  customerEmail String?
+  status        String   @default("PENDING")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  TECHNICIAN
+  CUSTOMER
+}
+
+enum Category {
+  CASQUE
+  ECOUTEUR
+  CHARGEUR
+  POWERBANK
+  TELEPHONE
+  ORDINATEUR
+}
+
+enum TicketStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

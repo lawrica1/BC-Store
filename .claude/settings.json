@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes -p playwright node offline-test.mjs)",
+      "Read(//c/tmp/pw-runner/**)",
+      "Bash(node feature-test.mjs)",
+      "Bash(node map-check.mjs)",
+      "WebFetch(domain:plus.codes)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\akono\\AppData\\Local\\Temp\\pw-runner"
+    ]
+  }
+}

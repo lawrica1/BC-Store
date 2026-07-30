@@ -1,0 +1,25 @@
+{
+  "name": "bc-store",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BC Store unified digital platform monorepo.",
+  "scripts": {
+    "dev": "corepack pnpm -r --parallel dev",
+    "dev:web": "corepack pnpm --filter @bc-store/web dev",
+    "dev:api": "corepack pnpm --filter @bc-store/api start:dev",
+    "build": "corepack pnpm --recursive build",
+    "lint": "corepack pnpm --recursive lint",
+    "test": "corepack pnpm --recursive test",
+    "prisma:generate": "corepack pnpm --filter @bc-store/api prisma:generate",
+    "prisma:migrate": "corepack pnpm --filter @bc-store/api prisma:migrate",
+    "prisma:seed": "corepack pnpm --filter @bc-store/api prisma:seed"
+  },
+  "packageManager": "pnpm@8.15.9",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
