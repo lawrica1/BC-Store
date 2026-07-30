@@ -40,8 +40,21 @@ BC Store is a PNPM workspace for a unified electronics store and technical servi
   - `IN_STORE`: `homeAddress` and `visitDate` are null.
   - `AT_HOME`: `homeAddress` and `visitDate` are required.
 
+## Authentication
+
+- Admin/technician routes require a JWT obtained via `POST /api/auth/login` (email + password).
+- Seeded accounts (`admin@bcstore.cm`, `tech-a@bcstore.cm`, `tech-b@bcstore.cm`) use the password from `ADMIN_PASSWORD`/`TECH_PASSWORD` in `apps/api/.env` (default `ChangeMe123!` — change before any shared deployment).
+- The web app's `/admin` route shows a login form until a valid token is stored, then loads the dashboard.
+
+## Payments
+
+- Checkout persists an `Order`/`OrderItem` record and branches by `paymentMethod`:
+  - `CARD`: creates a Stripe PaymentIntent and returns a `clientSecret` for Stripe Elements; `POST /api/payments/stripe/webhook` confirms/fails the order.
+  - `ORANGE_MONEY`: requests an Orange Money web payment URL; `POST /api/payments/orange/callback` updates order status.
+  - `MOBILE_MONEY`: requests an MTN MoMo collection (request-to-pay); `POST /api/payments/momo/callback` polls status and updates the order.
+- Without `STRIPE_SECRET_KEY` / Orange / MTN credentials configured, each provider service returns a stub reference so local development still works end-to-end.
+- `GET /api/payments/order/:orderNumber` lets the frontend poll for status while a redirect/mobile confirmation is pending.
+
 ## Production Notes
 
-- Admin API calls currently use an `x-user-role` header until full JWT auth is implemented.
-- Payments return a pending payment order stub; Stripe, Orange Money, and MTN MoMo credentials still need provider integration.
 - Product visuals and maps are UI-ready placeholders until real assets and Google Maps keys are configured.
