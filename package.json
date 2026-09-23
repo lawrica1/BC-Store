@@ -5,7 +5,7 @@
   "description": "BC Store unified digital platform monorepo.",
   "scripts": {
     "dev": "corepack pnpm -r --parallel dev",
-    "dev:web": "corepack pnpm --filter @bc-store/web dev",
+    "dev:client": "corepack pnpm --filter @bc-store/client dev",
     "dev:api": "corepack pnpm --filter @bc-store/api start:dev",
     "build": "corepack pnpm --recursive build",
     "lint": "corepack pnpm --recursive lint",

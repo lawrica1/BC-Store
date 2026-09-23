@@ -50,6 +50,13 @@ export interface RepairTicketDto {
   assignedTo?: string | null;
 }
 
+export interface PaginatedRepairTickets {
+  tickets: RepairTicketDto[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface ApiErrorShape {
   statusCode: number;
   message: string;
