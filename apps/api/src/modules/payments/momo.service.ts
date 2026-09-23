@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Injectable, Logger } from "@nestjs/common";
+import { verifyCallbackToken as verifySharedSecretToken } from "../../common/security/verify-callback-token";
 
 interface RequestToPayInput {
   orderNumber: string;
@@ -10,12 +11,21 @@ interface RequestToPayInput {
 @Injectable()
 export class MomoService {
   private readonly logger = new Logger(MomoService.name);
+  private cachedToken: { value: string; expiresAt: number } | null = null;
 
   private isConfigured() {
     return Boolean(process.env.MTN_MOMO_SUBSCRIPTION_KEY && process.env.MTN_MOMO_API_USER && process.env.MTN_MOMO_API_KEY);
   }
 
+  verifyCallbackToken(providedToken: string | undefined): boolean {
+    return verifySharedSecretToken("MTN_MOMO_CALLBACK_TOKEN", process.env.MTN_MOMO_CALLBACK_TOKEN, providedToken);
+  }
+
   private async getAccessToken(): Promise<string> {
+    if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) {
+      return this.cachedToken.value;
+    }
+
     const baseUrl = process.env.MTN_MOMO_BASE_URL ?? "https://sandbox.momodeveloper.mtn.com";
     const credentials = Buffer.from(`${process.env.MTN_MOMO_API_USER}:${process.env.MTN_MOMO_API_KEY}`).toString("base64");
 
@@ -31,7 +41,9 @@ export class MomoService {
       throw new Error(`MTN MoMo token request failed: ${response.status}`);
     }
 
-    const data = (await response.json()) as { access_token: string };
+    const data = (await response.json()) as { access_token: string; expires_in?: number };
+    const expiresInMs = ((data.expires_in ?? 3600) - 60) * 1000;
+    this.cachedToken = { value: data.access_token, expiresAt: Date.now() + expiresInMs };
     return data.access_token;
   }
 
@@ -57,7 +69,7 @@ export class MomoService {
       },
       body: JSON.stringify({
         amount: String(Math.round(input.amount)),
-        currency: "EUR",
+        currency: "XAF",
         externalId: input.orderNumber,
         payer: { partyIdType: "MSISDN", partyId: input.payerPhone.replace(/\D/g, "") },
         payerMessage: `BC Store order ${input.orderNumber}`,
@@ -73,6 +85,11 @@ export class MomoService {
   }
 
   async getStatus(referenceId: string) {
+    if (!this.isConfigured()) {
+      this.logger.warn("MTN MoMo credentials are not set. Returning a stub SUCCESSFUL status.");
+      return { status: "SUCCESSFUL" as const };
+    }
+
     const baseUrl = process.env.MTN_MOMO_BASE_URL ?? "https://sandbox.momodeveloper.mtn.com";
     const accessToken = await this.getAccessToken();
 
