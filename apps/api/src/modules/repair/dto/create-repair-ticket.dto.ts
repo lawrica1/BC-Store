@@ -30,8 +30,9 @@ export class CreateRepairTicketDto {
   @IsNotEmpty()
   homeAddress?: string;
 
+  @ValidateIf((dto: CreateRepairTicketDto) => dto.serviceType === RepairServiceType.AT_HOME)
   @IsDateString()
-  visitDate!: string;
+  visitDate?: string;
 
   @IsString()
   @IsNotEmpty()

@@ -2,6 +2,8 @@ import { BadRequestException } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsGateway } from "../notifications/notifications.gateway";
+import { MailService } from "../notify/mail.service";
+import { SmsService } from "../notify/sms.service";
 import { RepairService } from "./repair.service";
 import { RepairServiceType } from "./dto/create-repair-ticket.dto";
 
@@ -30,7 +32,9 @@ describe("RepairService", () => {
             emitTicketUpdated: jest.fn(),
             emitNewHomeVisit: jest.fn()
           }
-        }
+        },
+        { provide: MailService, useValue: { send: jest.fn() } },
+        { provide: SmsService, useValue: { send: jest.fn() } }
       ]
     }).compile();
 

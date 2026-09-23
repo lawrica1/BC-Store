@@ -20,4 +20,8 @@ export class CreateServiceRequestDto {
   @IsOptional()
   @IsEmail()
   customerEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  photoUrl?: string;
 }

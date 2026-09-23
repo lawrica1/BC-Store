@@ -1,0 +1,161 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme {
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  --color-void: rgb(var(--void));
+  --color-slatePanel: rgb(var(--slate-panel));
+  --color-borderTech: rgb(var(--border-tech));
+  --color-textMain: rgb(var(--text-main));
+  --color-textMuted: rgb(var(--text-muted));
+  --color-buyCyan: rgb(var(--buy-cyan));
+  --color-buyBlue: rgb(var(--buy-blue));
+  --color-serviceOrange: rgb(var(--service-orange));
+  --color-successEmerald: rgb(var(--success-emerald));
+
+  /* shadcn/ui base tokens, aliased onto the Neon Tech palette above instead of shadcn's default indigo theme */
+  --color-background: rgb(var(--void));
+  --color-foreground: rgb(var(--text-main));
+  --color-card: rgb(var(--slate-panel));
+  --color-card-foreground: rgb(var(--text-main));
+  --color-popover: rgb(var(--slate-panel));
+  --color-popover-foreground: rgb(var(--text-main));
+  --color-primary: rgb(var(--buy-cyan));
+  --color-primary-foreground: rgb(var(--void));
+  --color-secondary: rgb(var(--slate-panel));
+  --color-secondary-foreground: rgb(var(--text-main));
+  --color-muted: rgb(var(--slate-panel));
+  --color-muted-foreground: rgb(var(--text-muted));
+  --color-accent: rgb(var(--slate-panel));
+  --color-accent-foreground: rgb(var(--buy-cyan));
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: rgb(var(--border-tech));
+  --color-input: rgb(var(--border-tech));
+  --color-ring: rgb(var(--buy-cyan));
+  --radius: 0.75rem;
+
+  --shadow-cyanGlow: 0 0 30px rgb(var(--buy-cyan) / var(--glow-buy-opacity));
+  --shadow-orangeGlow: 0 0 30px rgb(var(--service-orange) / var(--glow-service-opacity));
+
+  --font-sans: Inter, Geist, Arial, sans-serif;
+}
+
+@keyframes accordion-down {
+  from { height: 0; }
+  to { height: var(--radix-accordion-content-height); }
+}
+
+@keyframes accordion-up {
+  from { height: var(--radix-accordion-content-height); }
+  to { height: 0; }
+}
+
+:root {
+  color-scheme: dark;
+
+  --void: 8 12 20;
+  --slate-panel: 15 23 42;
+  --border-tech: 30 41 59;
+  --text-main: 248 250 252;
+  --text-muted: 100 116 139;
+  --buy-cyan: 0 229 255;
+  --buy-blue: 0 123 255;
+  --service-orange: 255 107 53;
+  --success-emerald: 16 185 129;
+
+  --glass-bg: 255 255 255;
+  --glass-bg-opacity: 0.03;
+  --glow-buy-opacity: 0.15;
+  --glow-service-opacity: 0.16;
+  --body-glow-buy-opacity: 0.11;
+  --body-glow-service-opacity: 0.09;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --void: 248 250 252;
+  --slate-panel: 255 255 255;
+  --border-tech: 226 232 240;
+  --text-main: 15 23 42;
+  --text-muted: 100 116 139;
+  --buy-cyan: 47 111 237;
+  --buy-blue: 29 78 216;
+  --service-orange: 67 56 202;
+  --success-emerald: 5 150 105;
+
+  --glass-bg: 255 255 255;
+  --glass-bg-opacity: 1;
+  --glow-buy-opacity: 0.12;
+  --glow-service-opacity: 0.1;
+  --body-glow-buy-opacity: 0.06;
+  --body-glow-service-opacity: 0.05;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(circle at 20% 0%, rgb(var(--buy-cyan) / var(--body-glow-buy-opacity)), transparent 28rem),
+    radial-gradient(circle at 80% 12%, rgb(var(--service-orange) / var(--body-glow-service-opacity)), transparent 24rem),
+    rgb(var(--void));
+  color: rgb(var(--text-main));
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+@layer components {
+  .glass-card {
+    @apply border border-borderTech backdrop-blur-xl;
+    background-color: rgb(var(--glass-bg) / var(--glass-bg-opacity));
+  }
+
+  .lift-glow {
+    @apply transition duration-200 hover:-translate-y-0.5;
+  }
+
+  .cyan-focus {
+    @apply focus:border-buyCyan focus:outline-none focus:ring-2 focus:ring-buyCyan/20;
+  }
+}
+
+.leaflet-control-zoom a {
+  background-color: rgb(var(--slate-panel)) !important;
+  color: rgb(var(--text-main)) !important;
+  border-color: rgb(var(--border-tech)) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background-color: rgb(var(--border-tech)) !important;
+}
+
+.leaflet-control-attribution {
+  background-color: rgb(var(--slate-panel) / 0.8) !important;
+  color: rgb(var(--text-muted)) !important;
+}
+
+.leaflet-control-attribution a {
+  color: rgb(var(--buy-cyan)) !important;
+}
+
+.leaflet-tooltip {
+  background-color: rgb(var(--slate-panel)) !important;
+  color: rgb(var(--text-main)) !important;
+  border-color: rgb(var(--border-tech)) !important;
+}

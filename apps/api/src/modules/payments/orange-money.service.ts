@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { verifyCallbackToken as verifySharedSecretToken } from "../../common/security/verify-callback-token";
 
 interface CreateOrangeMoneyPaymentInput {
   orderId: string;
@@ -10,12 +11,29 @@ interface CreateOrangeMoneyPaymentInput {
 @Injectable()
 export class OrangeMoneyService {
   private readonly logger = new Logger(OrangeMoneyService.name);
+  private cachedToken: { value: string; expiresAt: number } | null = null;
 
   private isConfigured() {
     return Boolean(process.env.ORANGE_MONEY_CLIENT_ID && process.env.ORANGE_MONEY_CLIENT_SECRET && process.env.ORANGE_MONEY_MERCHANT_KEY);
   }
 
+  private buildNotifUrl() {
+    const baseCallbackUrl = `${process.env.API_PUBLIC_URL ?? "http://localhost:4000"}/api/payments/orange/callback`;
+    const callbackToken = process.env.ORANGE_MONEY_CALLBACK_TOKEN;
+    return callbackToken ? `${baseCallbackUrl}?token=${encodeURIComponent(callbackToken)}` : baseCallbackUrl;
+  }
+
+  // Orange Money's web payment API does not sign callbacks, so we authenticate them with a
+  // shared-secret token embedded in the notif_url query string instead of trusting the POST body.
+  verifyCallbackToken(providedToken: string | undefined): boolean {
+    return verifySharedSecretToken("ORANGE_MONEY_CALLBACK_TOKEN", process.env.ORANGE_MONEY_CALLBACK_TOKEN, providedToken);
+  }
+
   private async getAccessToken(): Promise<string> {
+    if (this.cachedToken && Date.now() < this.cachedToken.expiresAt) {
+      return this.cachedToken.value;
+    }
+
     const baseUrl = process.env.ORANGE_MONEY_BASE_URL ?? "https://api.orange.com";
     const credentials = Buffer.from(`${process.env.ORANGE_MONEY_CLIENT_ID}:${process.env.ORANGE_MONEY_CLIENT_SECRET}`).toString("base64");
 
@@ -32,7 +50,9 @@ export class OrangeMoneyService {
       throw new Error(`Orange Money OAuth failed: ${response.status}`);
     }
 
-    const data = (await response.json()) as { access_token: string };
+    const data = (await response.json()) as { access_token: string; expires_in?: number };
+    const expiresInMs = ((data.expires_in ?? 3600) - 60) * 1000;
+    this.cachedToken = { value: data.access_token, expiresAt: Date.now() + expiresInMs };
     return data.access_token;
   }
 
@@ -61,7 +81,7 @@ export class OrangeMoneyService {
         amount: Math.round(input.amount),
         return_url: process.env.ORANGE_MONEY_RETURN_URL ?? input.returnUrl,
         cancel_url: process.env.ORANGE_MONEY_RETURN_URL ?? input.returnUrl,
-        notif_url: `${process.env.API_PUBLIC_URL ?? "http://localhost:4000"}/api/payments/orange/callback`,
+        notif_url: this.buildNotifUrl(),
         lang: "fr",
         reference: input.orderId
       })

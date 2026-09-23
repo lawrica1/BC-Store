@@ -4,14 +4,14 @@ BC Store is a PNPM workspace for a unified electronics store and technical servi
 
 ## Apps
 
-- `apps/web`: Vite + React PWA frontend with React Router and the Neon Tech cyan/orange design system.
+- `apps/client`: Next.js 16 (App Router) + React 19 frontend, Tailwind CSS 4, shadcn/ui-style components, TanStack Query, Leaflet, embla-carousel, and the Neon Tech cyan/orange design system.
 - `apps/api`: NestJS API with Prisma, PostgreSQL, Redis-ready product caching, repair tickets, checkout, services, guarded admin routes, and Socket.io notifications.
 - `packages/shared-types`: Shared TypeScript contracts for frontend/backend boundaries.
 
 ## Local Setup
 
 1. Install dependencies with `corepack pnpm install`.
-2. Copy `apps/web/.env.example` to `apps/web/.env`.
+2. Copy `apps/client/.env.example` to `apps/client/.env`.
 3. Copy `apps/api/.env.example` to `apps/api/.env`.
 4. Start PostgreSQL and Redis with `docker compose up -d`.
 5. Generate Prisma client with `corepack pnpm prisma:generate`.

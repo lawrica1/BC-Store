@@ -15,22 +15,26 @@ model User {
   name        String
   phone       String?
   technicians RepairTicket[]
+  orders      Order[]
   createdAt   DateTime               @default(now())
   updatedAt   DateTime               @updatedAt
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String      @unique
   category    Category
-  price       Float
+  price       Decimal     @db.Decimal(12, 0)
   stock       Int
   images      String[]
   description String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isActive    Boolean     @default(true)
+  orderItems  OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([category])
 }
 
 model RepairTicket {
@@ -45,8 +49,8 @@ model RepairTicket {
   homeAddress   String?
   visitDate     DateTime?
   transportZone         String?
-  estimatedTransportFee Float?
-  transportFee          Float?
+  estimatedTransportFee Decimal?   @db.Decimal(12, 0)
+  transportFee          Decimal?   @db.Decimal(12, 0)
   customerName  String
   customerPhone String
   customerEmail String?
@@ -55,6 +59,8 @@ model RepairTicket {
   assignedUser  User?        @relation(fields: [assignedTo], references: [id])
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+
+  @@index([status])
 }
 
 model Order {
@@ -65,39 +71,50 @@ model Order {
   customerEmail         String?
   deliveryAddress       String
   deliveryMethod        String
-  deliveryFee           Float       @default(0)
-  total                 Float
+  deliveryFee           Decimal     @default(0) @db.Decimal(12, 0)
+  total                 Decimal     @db.Decimal(12, 0)
   paymentMethod         String
   paymentReceiverPhone  String
   status                OrderStatus @default(PENDING_PAYMENT)
-  stripePaymentIntentId String?
+  stripePaymentIntentId String?     @unique
   stripeClientSecret    String?
   providerReference     String?
   paymentUrl            String?
+  userId                String?
+  user                  User?       @relation(fields: [userId], references: [id])
   items                 OrderItem[]
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
+
+  @@index([status])
+  @@index([providerReference])
+  @@index([userId])
 }
 
 model OrderItem {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   orderId   String
-  order     Order  @relation(fields: [orderId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id])
   productId String
+  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Float
+  price     Decimal @db.Decimal(12, 0)
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 model ServiceRequest {
-  id            String   @id @default(cuid())
+  id            String              @id @default(cuid())
   serviceType   String
-  description   String   @db.Text
+  description   String              @db.Text
+  photoUrl      String?
   customerName  String
   customerPhone String
   customerEmail String?
-  status        String   @default("PENDING")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        ServiceRequestStatus @default(PENDING)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 }
 
 enum Role {
@@ -127,5 +144,12 @@ enum OrderStatus {
   PENDING_PAYMENT
   PAID
   FAILED
+  CANCELLED
+}
+
+enum ServiceRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
   CANCELLED
 }
