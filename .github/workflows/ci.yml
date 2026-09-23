@@ -1,0 +1,150 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @bc-store/api prisma:generate
+
+      - name: Lint
+        run: pnpm --filter @bc-store/client lint
+
+      - name: Build API
+        run: pnpm --filter @bc-store/api build
+
+      - name: Build client
+        run: pnpm --filter @bc-store/client build
+
+      - name: Test API
+        run: pnpm --filter @bc-store/api test
+
+      - name: Test client
+        run: pnpm --filter @bc-store/client test
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t bc-store-api .
+
+      - name: Build client image
+        run: docker build -f apps/client/Dockerfile -t bc-store-client .
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bcstore
+          POSTGRES_PASSWORD: bcstore
+          POSTGRES_DB: bcstore
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgresql://bcstore:bcstore@localhost:5433/bcstore
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-test-secret
+      ADMIN_PASSWORD: ChangeMe123!
+      TECH_PASSWORD: ChangeMe123!
+      WEB_ORIGIN: http://localhost:3010
+      API_PUBLIC_URL: http://localhost:4000
+      MTN_MOMO_CALLBACK_TOKEN: ci-test-momo-token
+      ORANGE_MONEY_CALLBACK_TOKEN: ci-test-orange-token
+      DISABLE_RATE_LIMIT: "true"
+      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+      NEXT_PUBLIC_WS_URL: ws://localhost:4000
+      NEXT_PUBLIC_STORE_LATITUDE: "4.059038"
+      NEXT_PUBLIC_STORE_LONGITUDE: "9.717141"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @bc-store/api prisma:generate
+
+      - name: Push schema and seed
+        run: |
+          pnpm --filter @bc-store/api prisma:migrate
+          pnpm --filter @bc-store/api prisma:seed
+
+      - name: Build API
+        run: pnpm --filter @bc-store/api build
+
+      - name: Build client
+        run: pnpm --filter @bc-store/client build
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @bc-store/client exec playwright install --with-deps chromium
+
+      - name: Start API
+        run: pnpm --filter @bc-store/api start > /tmp/api.log 2>&1 &
+
+      - name: Start client
+        run: pnpm --filter @bc-store/client start > /tmp/client.log 2>&1 &
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://localhost:4000/api/products http://localhost:3010
+
+      - name: Run Playwright E2E tests
+        run: pnpm --filter @bc-store/client test:e2e
+
+      - name: Upload logs and report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-failure-artifacts
+          path: |
+            apps/client/playwright-report/
+            /tmp/api.log
+            /tmp/client.log
+          retention-days: 7
